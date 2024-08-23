@@ -331,7 +331,7 @@
         async function handleQRCode(qrData) {
     try {
         showLoading();
-        const response = await fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorCodigoUnico?codigoUnico=${qrData}`);
+        const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorCodigoUnico?codigoUnico=${qrData}`);
         hideLoading();
         
         if (response.ok) {
@@ -429,7 +429,7 @@ async function guardarCambiosPersona() {
 
     showLoading();
     try {
-        const response = await fetch('https://localhost:7016/api/Personas/ActualizarPersona', {
+        const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ActualizarPersona', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(personaActual)
@@ -490,7 +490,7 @@ async function cargarAsistencias() {
     if (!verificarSesion()) return;
     try {
         const usuario = JSON.parse(localStorage.getItem('user'));
-        const response = await fetch('https://localhost:7016/api/Asistencia/ObtenerListaDeAsistencias', {
+        const response = await fetch('https://cursopythonqr.somee.com/api/Asistencia/ObtenerListaDeAsistencias', {
             headers: {
                 'UserId': usuario.id,
                 'Username': usuario.username
@@ -548,7 +548,7 @@ function filtrarAsistencias() {
             if (!verificarSesion()) return;
             try {
                 const usuario = JSON.parse(localStorage.getItem('user'));
-                const response = await fetch('https://localhost:7016/api/Personas/ObtenerListaDePersonas', {
+                const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ObtenerListaDePersonas', {
                     headers: {
                         'UserId': usuario.id,
                         'Username': usuario.username
@@ -588,8 +588,8 @@ function filtrarAsistencias() {
 async function mostrarQR(id) {
     try {
         const [qrResponse, personaResponse] = await Promise.all([
-            fetch(`https://localhost:7016/api/Personas/VerQR?id=${id}`),
-            fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorId?id=${id}`)
+            fetch(`https://cursopythonqr.somee.com/api/Personas/VerQR?id=${id}`),
+            fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorId?id=${id}`)
         ]);
 
         if (qrResponse.ok && personaResponse.ok) {
@@ -639,7 +639,7 @@ function cerrarModalQR() {
 async function registrarAsistencia(personaId) {
     try {
         showLoading();
-        const response = await fetch(`https://localhost:7016/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
+        const response = await fetch(`https://cursopythonqr.somee.com/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -676,10 +676,10 @@ async function guardarPersona(event) {
     try {
         let url, method;
         if (personaId) {
-            url = 'https://localhost:7016/api/Personas/ActualizarPersona';
+            url = 'https://cursopythonqr.somee.com/api/Personas/ActualizarPersona';
             method = 'PATCH';
         } else {
-            url = 'https://localhost:7016/api/Personas/GuardarPersonaYEnviarQR';
+            url = 'https://cursopythonqr.somee.com/api/Personas/GuardarPersonaYEnviarQR';
             method = 'POST';
         }
         
@@ -705,7 +705,7 @@ async function guardarPersona(event) {
 async function editarPersona(id) {
     showLoading();
     try {
-        const response = await fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorId?id=${id}`);
+        const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorId?id=${id}`);
         hideLoading();
         if (response.ok) {
             const persona = await response.json();
@@ -739,7 +739,7 @@ async function eliminarPersona(id) {
             if (result.isConfirmed) {
                 showLoading();
                 try {
-                    const response = await fetch(`https://localhost:7016/api/Personas/EliminarPersona?id=${id}`, { method: 'DELETE' });
+                    const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/EliminarPersona?id=${id}`, { method: 'DELETE' });
                     hideLoading();
                     if (response.ok) {
                         showAlert('Eliminado', 'La persona ha sido eliminada correctamente', 'success');
@@ -757,7 +757,7 @@ async function eliminarPersona(id) {
         async function reenviarQR(id) {
             showLoading();
             try {
-                const response = await fetch(`https://localhost:7016/api/Personas/ReenviarQR?id=${id}`, { method: 'POST' });
+                const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ReenviarQR?id=${id}`, { method: 'POST' });
                 hideLoading();
                 if (response.ok) {
                     showAlert('Éxito', 'QR reenviado exitosamente', 'success');
@@ -817,10 +817,10 @@ async function cargarUsuarios() {
     try {
         let url, method;
         if (usuarioId) {
-            url = 'https://localhost:7016/api/Usuarios/EditarUsuario';
+            url = 'https://cursopythonqr.somee.com/api/Usuarios/EditarUsuario';
             method = 'PATCH';
         } else {
-            url = 'https://localhost:7016/api/Usuarios/CrearUsuario';
+            url = 'https://cursopythonqr.somee.com/api/Usuarios/CrearUsuario';
             method = 'POST';
         }
         
@@ -846,7 +846,7 @@ async function cargarUsuarios() {
 async function editarUsuario(id) {
     showLoading();
     try {
-        const response = await fetch(`https://localhost:7016/api/Usuarios/ObtenerUsuarioPorId?id=${id}`);
+        const response = await fetch(`https://cursopythonqr.somee.com/api/Usuarios/ObtenerUsuarioPorId?id=${id}`);
         hideLoading();
         if (response.ok) {
             const usuario = await response.json();
@@ -877,7 +877,7 @@ async function eliminarUsuario(id) {
     if (result.isConfirmed) {
         showLoading();
         try {
-            const response = await fetch(`https://localhost:7016/api/Usuarios/EliminarUsuario?id=${id}`, { method: 'DELETE' });
+            const response = await fetch(`https://cursopythonqr.somee.com/api/Usuarios/EliminarUsuario?id=${id}`, { method: 'DELETE' });
             hideLoading();
             if (response.ok) {
                 showAlert('Eliminado', 'El usuario ha sido eliminado correctamente', 'success');
@@ -1004,7 +1004,7 @@ function cerrarModalRegistroAsistencia() {
 
 async function cargarPersonasParaSelect() {
     try {
-        const response = await fetch('https://localhost:7016/api/Personas/ObtenerListaDePersonas');
+        const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ObtenerListaDePersonas');
         if (response.ok) {
             const personas = await response.json();
             const select = document.getElementById('personaSelect');
@@ -1022,7 +1022,7 @@ async function cargarPersonasParaSelect() {
 async function registrarAsistenciaManual() {
     const personaId = document.getElementById('personaSelect').value;
     try {
-        const response = await fetch(`https://localhost:7016/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
+        const response = await fetch(`https://cursopythonqr.somee.com/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
             method: 'POST',
         });
         if (response.ok) {
