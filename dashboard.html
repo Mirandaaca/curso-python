@@ -363,7 +363,7 @@ function mostrarDetallesPersona(persona) {
     document.getElementById('personaCelular').textContent = persona.celular;
     document.getElementById('personaInstitucion').textContent = persona.institucion;
 
-    fetch(`https://localhost:7016/api/Asistencia/ObtenerUltimaAsistenciaPorPersonaId?idPersona=${persona.id}`)
+    fetch(`https://cursopythonqr.somee.com/api/Asistencia/ObtenerUltimaAsistenciaPorPersonaId?idPersona=${persona.id}`)
         .then(response => response.json())
         .then(data => {
             if (data && data.fecha) {
