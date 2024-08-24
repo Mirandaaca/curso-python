@@ -10,7 +10,6 @@
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.12/dist/sweetalert2.all.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
         .loader {
@@ -209,7 +208,10 @@
     <div id="registrarAsistenciaModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <h3 class="text-lg font-semibold mb-4">Registrar Asistencia</h3>
-            <select id="personaSelect" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 mb-4"></select>
+            <input type="text" id="personaSearchInput" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500 mb-4" placeholder="Buscar persona...">
+            <div id="personaListContainer" class="max-h-60 overflow-y-auto mb-4">
+                <ul id="personaSearchResults"></ul>
+            </div>
             <div class="flex justify-end">
                 <button onclick="cerrarModalRegistroAsistencia()" class="bg-gray-300 text-gray-800 py-2 px-4 rounded hover:bg-gray-400 transition duration-200 mr-2">Cancelar</button>
                 <button onclick="registrarAsistenciaManual()" class="bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200">Registrar</button>
@@ -225,7 +227,6 @@
     return localISOTime;
         
     }
-        console.log('Fecha y hora actual:', getCurrentDateTime());
         function showLoading() {
             document.getElementById('loading-overlay').classList.remove('hidden');
         }
@@ -331,7 +332,7 @@
         async function handleQRCode(qrData) {
     try {
         showLoading();
-        const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorCodigoUnico?codigoUnico=${qrData}`);
+        const response = await fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorCodigoUnico?codigoUnico=${qrData}`);
         hideLoading();
         
         if (response.ok) {
@@ -363,7 +364,7 @@ function mostrarDetallesPersona(persona) {
     document.getElementById('personaCelular').textContent = persona.celular;
     document.getElementById('personaInstitucion').textContent = persona.institucion;
 
-    fetch(`https://cursopythonqr.somee.com/api/Asistencia/ObtenerUltimaAsistenciaPorPersonaId?idPersona=${persona.id}`)
+    fetch(`https://localhost:7016/api/Asistencia/ObtenerUltimaAsistenciaPorPersonaId?idPersona=${persona.id}`)
         .then(response => response.json())
         .then(data => {
             if (data && data.fecha) {
@@ -412,24 +413,9 @@ function mostrarDetallesPersona(persona) {
 }
 async function guardarCambiosPersona() {
     if (!personaActual) return;
-
-    const haIngresadoAhora = document.getElementById('personaHaIngresado').checked;
-    const haComidoAhora = document.getElementById('personaHaComido').checked;
-
-    personaActual.haIngresado = haIngresadoAhora;
-    personaActual.haComido = haComidoAhora;
-
-    // Actualizar fechas solo si se han marcado como true
-    if (haIngresadoAhora && !personaActual.fechaIngreso) {
-        personaActual.fechaIngreso = getCurrentDateTime();
-    }
-    if (haComidoAhora && !personaActual.fechaComida) {
-        personaActual.fechaComida = getCurrentDateTime();
-    }
-
     showLoading();
     try {
-        const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ActualizarPersona', {
+        const response = await fetch('https://localhost:7016/api/Personas/ActualizarPersona', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(personaActual)
@@ -490,7 +476,7 @@ async function cargarAsistencias() {
     if (!verificarSesion()) return;
     try {
         const usuario = JSON.parse(localStorage.getItem('user'));
-        const response = await fetch('https://cursopythonqr.somee.com/api/Asistencia/ObtenerListaDeAsistencias', {
+        const response = await fetch('https://localhost:7016/api/Asistencia/ObtenerListaDeAsistencias', {
             headers: {
                 'UserId': usuario.id,
                 'Username': usuario.username
@@ -521,9 +507,41 @@ function mostrarAsistencias(asistencias) {
             <td class="py-3 px-4">${asistencia.institucion}</td>
             <td class="py-3 px-4">${asistencia.celular}</td>
             <td class="py-3 px-4">${new Date(asistencia.fecha).toLocaleString()}</td>
+            <td class="py-3 px-4">
+                <button onclick="eliminarAsistencia(${asistencia.id})" class="bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600 transition duration-200">Eliminar</button>
+            </td>
         </tr>
     `).join('');
     document.getElementById('asistenciasList').innerHTML = listaHTML;
+}
+async function eliminarAsistencia(id) {
+    const result = await Swal.fire({
+        title: '¿Está seguro?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
+        showLoading();
+        try {
+            const response = await fetch(`https://localhost:7016/api/Asistencia/EliminarAsistencia?id=${id}`, { method: 'DELETE' });
+            hideLoading();
+            if (response.ok) {
+                showAlert('Eliminado', 'La asistencia ha sido eliminada correctamente', 'success');
+                await cargarAsistencias();
+            } else {
+                showAlert('Error', 'No se pudo eliminar la asistencia', 'error');
+            }
+        } catch (error) {
+            hideLoading();
+            showAlert('Error', 'Hubo un problema al conectar con el servidor', 'error');
+        }
+    }
 }
 function filtrarAsistencias() {
     const searchTerm = document.getElementById('asistenciaSearch').value.toLowerCase();
@@ -548,7 +566,7 @@ function filtrarAsistencias() {
             if (!verificarSesion()) return;
             try {
                 const usuario = JSON.parse(localStorage.getItem('user'));
-                const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ObtenerListaDePersonas', {
+                const response = await fetch('https://localhost:7016/api/Personas/ObtenerListaDePersonas', {
                     headers: {
                         'UserId': usuario.id,
                         'Username': usuario.username
@@ -588,8 +606,8 @@ function filtrarAsistencias() {
 async function mostrarQR(id) {
     try {
         const [qrResponse, personaResponse] = await Promise.all([
-            fetch(`https://cursopythonqr.somee.com/api/Personas/VerQR?id=${id}`),
-            fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorId?id=${id}`)
+            fetch(`https://localhost:7016/api/Personas/VerQR?id=${id}`),
+            fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorId?id=${id}`)
         ]);
 
         if (qrResponse.ok && personaResponse.ok) {
@@ -639,12 +657,10 @@ function cerrarModalQR() {
 async function registrarAsistencia(personaId) {
     try {
         showLoading();
-        const response = await fetch(`https://cursopythonqr.somee.com/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
+        const fechaActual = getCurrentDateTime();
+        const fechaFormateada = encodeURIComponent(fechaActual);
+        const response = await fetch(`https://localhost:7016/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}&Fecha=${fechaFormateada}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ personaId: personaId })
         });
         hideLoading();
         
@@ -676,10 +692,10 @@ async function guardarPersona(event) {
     try {
         let url, method;
         if (personaId) {
-            url = 'https://cursopythonqr.somee.com/api/Personas/ActualizarPersona';
+            url = 'https://localhost:7016/api/Personas/ActualizarPersona';
             method = 'PATCH';
         } else {
-            url = 'https://cursopythonqr.somee.com/api/Personas/GuardarPersonaYEnviarQR';
+            url = 'https://localhost:7016/api/Personas/GuardarPersonaYEnviarQR';
             method = 'POST';
         }
         
@@ -705,7 +721,7 @@ async function guardarPersona(event) {
 async function editarPersona(id) {
     showLoading();
     try {
-        const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ObtenerPersonaPorId?id=${id}`);
+        const response = await fetch(`https://localhost:7016/api/Personas/ObtenerPersonaPorId?id=${id}`);
         hideLoading();
         if (response.ok) {
             const persona = await response.json();
@@ -739,7 +755,7 @@ async function eliminarPersona(id) {
             if (result.isConfirmed) {
                 showLoading();
                 try {
-                    const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/EliminarPersona?id=${id}`, { method: 'DELETE' });
+                    const response = await fetch(`https://localhost:7016/api/Personas/EliminarPersona?id=${id}`, { method: 'DELETE' });
                     hideLoading();
                     if (response.ok) {
                         showAlert('Eliminado', 'La persona ha sido eliminada correctamente', 'success');
@@ -757,7 +773,7 @@ async function eliminarPersona(id) {
         async function reenviarQR(id) {
             showLoading();
             try {
-                const response = await fetch(`https://cursopythonqr.somee.com/api/Personas/ReenviarQR?id=${id}`, { method: 'POST' });
+                const response = await fetch(`https://localhost:7016/api/Personas/ReenviarQR?id=${id}`, { method: 'POST' });
                 hideLoading();
                 if (response.ok) {
                     showAlert('Éxito', 'QR reenviado exitosamente', 'success');
@@ -773,7 +789,7 @@ async function cargarUsuarios() {
             if (!verificarSesion()) return;
             try {
                 const usuario = JSON.parse(localStorage.getItem('user'));
-                const response = await fetch('https://cursopythonqr.somee.com/api/Usuarios/ObtenerListaDeUsuarios', {
+                const response = await fetch('https://localhost:7016/api/Usuarios/ObtenerListaDeUsuarios', {
                     headers: {
                         'UserId': usuario.id,
                         'Username': usuario.username
@@ -817,10 +833,10 @@ async function cargarUsuarios() {
     try {
         let url, method;
         if (usuarioId) {
-            url = 'https://cursopythonqr.somee.com/api/Usuarios/EditarUsuario';
+            url = 'https://localhost:7016/api/Usuarios/EditarUsuario';
             method = 'PATCH';
         } else {
-            url = 'https://cursopythonqr.somee.com/api/Usuarios/CrearUsuario';
+            url = 'https://localhost:7016/api/Usuarios/CrearUsuario';
             method = 'POST';
         }
         
@@ -846,7 +862,7 @@ async function cargarUsuarios() {
 async function editarUsuario(id) {
     showLoading();
     try {
-        const response = await fetch(`https://cursopythonqr.somee.com/api/Usuarios/ObtenerUsuarioPorId?id=${id}`);
+        const response = await fetch(`https://localhost:7016/api/Usuarios/ObtenerUsuarioPorId?id=${id}`);
         hideLoading();
         if (response.ok) {
             const usuario = await response.json();
@@ -877,7 +893,7 @@ async function eliminarUsuario(id) {
     if (result.isConfirmed) {
         showLoading();
         try {
-            const response = await fetch(`https://cursopythonqr.somee.com/api/Usuarios/EliminarUsuario?id=${id}`, { method: 'DELETE' });
+            const response = await fetch(`https://localhost:7016/api/Usuarios/EliminarUsuario?id=${id}`, { method: 'DELETE' });
             hideLoading();
             if (response.ok) {
                 showAlert('Eliminado', 'El usuario ha sido eliminado correctamente', 'success');
@@ -1004,13 +1020,10 @@ function cerrarModalRegistroAsistencia() {
 
 async function cargarPersonasParaSelect() {
     try {
-        const response = await fetch('https://cursopythonqr.somee.com/api/Personas/ObtenerListaDePersonas');
+        const response = await fetch('https://localhost:7016/api/Personas/ObtenerListaDePersonas');
         if (response.ok) {
-            const personas = await response.json();
-            const select = document.getElementById('personaSelect');
-            select.innerHTML = personas.map(persona => 
-                `<option value="${persona.id}">${persona.nombreCompleto}</option>`
-            ).join('');
+            todasLasPersonas = await response.json();
+            mostrarTodasLasPersonas();
         } else {
             console.error('Error al cargar personas');
         }
@@ -1018,11 +1031,58 @@ async function cargarPersonasParaSelect() {
         console.error('Error:', error);
     }
 }
+function mostrarTodasLasPersonas() {
+    mostrarResultadosBusqueda(todasLasPersonas);
+}
+function abrirModalRegistroAsistencia() {
+    document.getElementById('registrarAsistenciaModal').classList.remove('hidden');
+    cargarPersonasParaSelect();
+    document.getElementById('personaSearchInput').addEventListener('input', buscarPersonas);
+}
+function buscarPersonas() {
+    const searchTerm = document.getElementById('personaSearchInput').value.toLowerCase();
+    const resultados = todasLasPersonas.filter(persona => 
+        persona.nombreCompleto.toLowerCase().includes(searchTerm)
+    );
+    mostrarResultadosBusqueda(resultados);
+}
 
+let personaSeleccionadaId = null;
+
+function seleccionarPersona(id, nombre) {
+    personaSeleccionadaId = id;
+    document.getElementById('personaSearchInput').value = nombre;
+    // Mantener la lista visible, pero resaltar la selección
+    mostrarResultadosBusqueda(todasLasPersonas);
+    resaltarSeleccion(id);
+}
+function resaltarSeleccion(id) {
+    const items = document.querySelectorAll('#personaSearchResults li');
+    items.forEach(item => {
+        if (item.onclick.toString().includes(`seleccionarPersona(${id}`)) {
+            item.classList.add('bg-blue-100');
+        } else {
+            item.classList.remove('bg-blue-100');
+        }
+    });
+}
+function mostrarResultadosBusqueda(resultados) {
+    const listaResultados = document.getElementById('personaSearchResults');
+    listaResultados.innerHTML = resultados.map(persona => 
+        `<li class="cursor-pointer hover:bg-gray-100 p-2" onclick="seleccionarPersona(${persona.id}, '${persona.nombreCompleto}')">${persona.nombreCompleto}</li>`
+    ).join('');
+}
 async function registrarAsistenciaManual() {
-    const personaId = document.getElementById('personaSelect').value;
+    if (!personaSeleccionadaId) {
+        showAlert('Error', 'Por favor, seleccione una persona', 'error');
+        return;
+    }
+
+    const fechaActual = getCurrentDateTime();
+    const fechaFormateada = encodeURIComponent(fechaActual);
+
     try {
-        const response = await fetch(`https://cursopythonqr.somee.com/api/Asistencia/RegistrarAsistencia?idPersona=${personaId}`, {
+        const response = await fetch(`https://localhost:7016/api/Asistencia/RegistrarAsistencia?idPersona=${personaSeleccionadaId}&Fecha=${fechaFormateada}`, {
             method: 'POST',
         });
         if (response.ok) {
@@ -1036,6 +1096,12 @@ async function registrarAsistenciaManual() {
         console.error('Error al registrar asistencia:', error);
         showAlert('Error', 'Hubo un problema al registrar la asistencia', 'error');
     }
+}
+function cerrarModalRegistroAsistencia() {
+    document.getElementById('registrarAsistenciaModal').classList.add('hidden');
+    document.getElementById('personaSearchInput').value = '';
+    document.getElementById('personaSearchResults').innerHTML = '';
+    personaSeleccionadaId = null;
 }
 document.getElementById('registrarAsistenciaManual').addEventListener('click', abrirModalRegistroAsistencia);
 
